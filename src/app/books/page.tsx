@@ -48,12 +48,16 @@ export default function BooksPage() {
       fetchBooks(); // Refresh the book list
     } catch (error: any) {
       console.error('Borrow error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to borrow book';
-      toast.error(errorMessage);
       
-      // If the user has reached their limit, we might want to show a different message
+      // Handle specific error cases
       if (error.response?.status === 403) {
-        toast.error('You have reached your borrowing limit (3 books)');
+        toast.error('You have reached your maximum borrowing limit (2 books). Please return some books before borrowing more.');
+      } else if (error.response?.status === 400) {
+        toast.error(error.response?.data?.message || 'Unable to borrow this book at the moment.');
+      } else if (error.response?.status === 404) {
+        toast.error('Book not found or no longer available.');
+      } else {
+        toast.error('Failed to borrow book. Please try again later.');
       }
     }
   };

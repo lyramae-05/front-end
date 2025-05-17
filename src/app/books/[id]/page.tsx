@@ -39,8 +39,8 @@ function BookDetailsContent({ id }: { id: string }) {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get<Book>(`http://localhost:8000/api/books/${id}`);
-      setBook(response.data);
+      const response = await axios.get<{ message: string; data: Book }>(`http://localhost:8000/api/books/${id}`);
+      setBook(response.data.data);
     } catch (error) {
       const apiError = error as ApiError;
       const errorMessage = apiError.message || 'Failed to fetch book details';
@@ -136,6 +136,18 @@ function BookDetailsContent({ id }: { id: string }) {
           <div className="border-t border-gray-200">
             <dl>
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Title</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  {book.title}
+                </dd>
+              </div>
+              <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Author</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  {book.author}
+                </dd>
+              </div>
+              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">ISBN</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                   {book.isbn || 'Not available'}
@@ -144,7 +156,7 @@ function BookDetailsContent({ id }: { id: string }) {
               <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Genre</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {book.genre}
+                  {book.genre || 'Not specified'}
                 </dd>
               </div>
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
