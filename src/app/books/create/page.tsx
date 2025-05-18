@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { toast } from 'react-hot-toast';
-import { isAdmin } from '@/lib/auth';
+import { Book } from '@/types/api';
 
 interface BookFormData {
   title: string;
@@ -14,7 +14,8 @@ interface BookFormData {
   publisher: string;
   published_date: string;
   description: string;
-  quantity: number;
+  total_copies: number;
+  available_copies?: number;
 }
 
 export default function CreateBookPage() {
@@ -28,13 +29,13 @@ export default function CreateBookPage() {
     publisher: '',
     published_date: '',
     description: '',
-    quantity: 1
+    total_copies: 1
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof BookFormData, string>>>({});
 
   const validateForm = () => {
-    const newErrors: Partial<BookFormData> = {};
+    const newErrors: Partial<Record<keyof BookFormData, string>> = {};
     
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
@@ -50,8 +51,8 @@ export default function CreateBookPage() {
       newErrors.isbn = 'ISBN must be between 10 and 13 characters';
     }
     
-    if (formData.quantity < 1) {
-      newErrors.quantity = 'Quantity must be at least 1';
+    if (formData.total_copies < 1) {
+      newErrors.total_copies = 'Total copies must be at least 1';
     }
 
     if (formData.description && formData.description.length > 1000) {
@@ -72,7 +73,12 @@ export default function CreateBookPage() {
 
     try {
       setLoading(true);
-      const response = await api.post('/books', formData);
+      // Set available_copies equal to total_copies for new books
+      const submitData = {
+        ...formData,
+        available_copies: formData.total_copies
+      };
+      const response = await api.post('/books', submitData);
       toast.success('Book added successfully');
       router.push('/admin/books');
     } catch (error: any) {
@@ -80,7 +86,7 @@ export default function CreateBookPage() {
       if (error.response?.data?.errors) {
         // Handle validation errors from the backend
         const backendErrors = error.response.data.errors;
-        const formattedErrors: Partial<BookFormData> = {};
+        const formattedErrors: Partial<Record<keyof BookFormData, string>> = {};
         
         Object.keys(backendErrors).forEach(key => {
           if (key in formData) {
@@ -98,14 +104,14 @@ export default function CreateBookPage() {
     }
   };
 
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCopiesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const numValue = parseInt(rawValue, 10);
     
     if (rawValue === '') {
-      setFormData(prev => ({ ...prev, quantity: 1 }));
+      setFormData(prev => ({ ...prev, total_copies: 1 }));
     } else if (!isNaN(numValue)) {
-      setFormData(prev => ({ ...prev, quantity: Math.max(1, numValue) }));
+      setFormData(prev => ({ ...prev, total_copies: Math.max(1, numValue) }));
     }
   };
 
@@ -225,27 +231,24 @@ export default function CreateBookPage() {
                 {errors.description && (
                   <p className="mt-1 text-sm text-red-600">{errors.description}</p>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
-                  {formData.description.length}/1000 characters
-                </p>
               </div>
 
               <div>
-                <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
-                  Quantity *
+                <label htmlFor="total_copies" className="block text-sm font-medium text-gray-700">
+                  Total Copies *
                 </label>
                 <input
                   type="number"
-                  id="quantity"
+                  id="total_copies"
                   min="1"
-                  value={formData.quantity}
-                  onChange={handleQuantityChange}
+                  value={formData.total_copies}
+                  onChange={handleCopiesChange}
                   className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.quantity ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                    errors.total_copies ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
                   }`}
                 />
-                {errors.quantity && (
-                  <p className="mt-1 text-sm text-red-600">{errors.quantity}</p>
+                {errors.total_copies && (
+                  <p className="mt-1 text-sm text-red-600">{errors.total_copies}</p>
                 )}
               </div>
 
@@ -253,16 +256,14 @@ export default function CreateBookPage() {
                 <button
                   type="button"
                   onClick={() => router.back()}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 ${
-                    loading ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
                   {loading ? 'Adding...' : 'Add Book'}
                 </button>

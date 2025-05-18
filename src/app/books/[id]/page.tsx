@@ -9,6 +9,7 @@ import { Book, ApiError } from '@/types/api';
 import { isAdmin } from '@/lib/auth';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { use } from 'react';
+import api from '@/lib/api';
 
 function BookDetailsContent({ id }: { id: string }) {
   const router = useRouter();
@@ -39,7 +40,7 @@ function BookDetailsContent({ id }: { id: string }) {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get<{ message: string; data: Book }>(`http://localhost:8000/api/books/${id}`);
+      const response = await api.get<{ message: string; data: Book }>(`/books/${id}`);
       setBook(response.data.data);
     } catch (error) {
       const apiError = error as ApiError;
@@ -55,7 +56,7 @@ function BookDetailsContent({ id }: { id: string }) {
     if (!window.confirm('Are you sure you want to delete this book?')) return;
 
     try {
-      await axios.delete(`http://localhost:8000/api/books/${id}`);
+      await api.delete(`/books/${id}`);
       toast.success('Book deleted successfully');
       router.push('/books');
     } catch (error) {

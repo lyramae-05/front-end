@@ -1,21 +1,19 @@
 import axios from 'axios';
-
-// API configuration
-const API_URL = 'http://127.0.0.1:8000/api';
-const isBrowser = typeof window !== 'undefined';
+import { API_CONFIG } from '../config';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_CONFIG.BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true // Enable sending cookies with requests
+  timeout: API_CONFIG.TIMEOUT,
+  withCredentials: API_CONFIG.CREDENTIALS
 });
 
 // Add request interceptor to attach auth token
 api.interceptors.request.use((config) => {
-  if (isBrowser) {
+  if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -28,7 +26,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && isBrowser) {
+    if (error.response && typeof window !== 'undefined') {
       // Handle 401 Unauthorized errors
       if (error.response.status === 401) {
         localStorage.removeItem('token');
