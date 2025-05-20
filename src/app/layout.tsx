@@ -1,15 +1,5 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import Navigation from "@/components/Navigation";
-
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "Library Management System",
-  description: "A modern library management system",
-};
+// app/layout.tsx
+import './globals.css'; // Your global styles
 
 export default function RootLayout({
   children,
@@ -18,10 +8,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Navigation />
-        <Toaster position="top-right" />
-          {children}
+      <body>
+        {/* Put your main site header here */}
+        <header>
+          <h1>My Website</h1>
+          {/* Maybe your main nav */}
+        </header>
+
+        <main>{children}</main>
+
+        {/* Put your footer here */}
+        <footer>© 2025 My Website</footer>
       </body>
     </html>
   );
