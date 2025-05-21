@@ -1,12 +1,12 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com',
-  BACKUP_URL: 'https://backend-49g6.onrender.com',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com/api',
+  BACKUP_URL: 'https://backend-49g6.onrender.com/api',
   TIMEOUT: 180000, // 3 minutes for cold starts
   CREDENTIALS: true,
   RETRY_ATTEMPTS: 8,
   RETRY_DELAY: 3000,
   CONNECTION_TIMEOUT: 30000, // 30 seconds
-  WAKE_UP_ENDPOINT: '/api/health', // Endpoint to wake up the service
+  WAKE_UP_ENDPOINT: '/health', // Endpoint to wake up the service
 };
 
 export const APP_CONFIG = {

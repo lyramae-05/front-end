@@ -52,10 +52,7 @@ const api = axios.create({
 const isUrlAccessible = async (url: string) => {
   try {
     await axios.get(`${url}${API_CONFIG.WAKE_UP_ENDPOINT}`, {
-      timeout: API_CONFIG.CONNECTION_TIMEOUT,
-      headers: {
-        'Origin': typeof window !== 'undefined' ? window.location.origin : APP_CONFIG.FRONTEND_URL
-      }
+      timeout: API_CONFIG.CONNECTION_TIMEOUT
     });
     return true;
   } catch (error: any) {
