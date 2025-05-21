@@ -20,6 +20,6 @@ export const AUTH_CONFIG = {
   USER_KEY: 'user',
   COOKIE_OPTIONS: {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax' as const
+    sameSite: 'lax' as 'lax'
   },
 }; 

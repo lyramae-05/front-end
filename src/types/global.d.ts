@@ -67,7 +67,7 @@ declare module '@/config' {
     USER_KEY: string;
     COOKIE_OPTIONS: {
       secure: boolean;
-      sameSite: string;
+      sameSite: 'Lax' | 'lax' | 'Strict' | 'strict' | 'None' | 'none';
     };
   };
 
