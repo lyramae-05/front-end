@@ -27,6 +27,20 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface BorrowingRecord {
+  id: number;
+  user_id: number;
+  book_id: number;
+  borrowed_at: string;
+  due_date: string;
+  returned_at: string | null;
+  status: 'active' | 'returned' | 'overdue';
+  book: Book;
+  user?: User;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Transaction {
   id: number;
   user_id: number;

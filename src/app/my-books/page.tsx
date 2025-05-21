@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import api from '@/lib/api';
-import { BorrowingRecord } from '@/types/api';
+import { BorrowingRecord, ApiResponse, ApiError } from '@/types/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -36,15 +36,19 @@ export default function MyBooksPage() {
   const fetchBorrowings = async () => {
     const loadingToast = toast.loading('Loading your borrowed books...');
     try {
-      const response = await api.get<{ data: BorrowingRecord[] }>('/borrowings');
+      const response = await api.get<ApiResponse<BorrowingRecord[]>>('/borrowings');
       setBorrowings(response.data.data || []);
-    } catch (error: any) {
-      console.error('Failed to fetch borrowed books:', error);
-      toast.error(
-        error.response?.data?.message || 
-        'Failed to fetch borrowed books. Please try again later.',
-        { duration: 4000 }
-      );
+    } catch (error) {
+      if (error instanceof Error) {
+        const apiError = error as ApiError;
+        console.error('Failed to fetch borrowed books:', apiError);
+        toast.error(
+          apiError.message || 'Failed to fetch borrowed books. Please try again later.',
+          { duration: 4000 }
+        );
+      } else {
+        toast.error('An unexpected error occurred', { duration: 4000 });
+      }
       setBorrowings([]);
     } finally {
       setLoading(false);
@@ -60,13 +64,17 @@ export default function MyBooksPage() {
         duration: 4000
       });
       fetchBorrowings();
-    } catch (error: any) {
-      console.error('Failed to return book:', error);
-      toast.error(
-        error.response?.data?.message || 
-        'Failed to return book. Please try again later.',
-        { duration: 4000 }
-      );
+    } catch (error) {
+      if (error instanceof Error) {
+        const apiError = error as ApiError;
+        console.error('Failed to return book:', apiError);
+        toast.error(
+          apiError.message || 'Failed to return book. Please try again later.',
+          { duration: 4000 }
+        );
+      } else {
+        toast.error('An unexpected error occurred', { duration: 4000 });
+      }
     } finally {
       toast.dismiss(loadingToast);
     }
