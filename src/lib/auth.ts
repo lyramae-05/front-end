@@ -1,15 +1,17 @@
 import axios from 'axios';
 import { User } from '@/types/api';
 import Cookies from 'js-cookie';
+import { AUTH_CONFIG } from '@/config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com/api';
 
 const isBrowser = typeof window !== 'undefined';
 
 export const setAuthToken = (token: string) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('token', token);
-    Cookies.set('token', token, { path: '/' });
+  if (isBrowser) {
+    // Store in both localStorage and cookies for redundancy
+    localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
+    Cookies.set(AUTH_CONFIG.TOKEN_KEY, token, AUTH_CONFIG.COOKIE_OPTIONS);
     
     // Set axios default header
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -17,37 +19,39 @@ export const setAuthToken = (token: string) => {
 };
 
 export const setUser = (user: User) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('user', JSON.stringify(user));
-    Cookies.set('user', JSON.stringify(user), { path: '/' });
+  if (isBrowser) {
+    const userStr = JSON.stringify(user);
+    localStorage.setItem(AUTH_CONFIG.USER_KEY, userStr);
+    Cookies.set(AUTH_CONFIG.USER_KEY, userStr, AUTH_CONFIG.COOKIE_OPTIONS);
     // Dispatch a storage event so other components can update
     window.dispatchEvent(new Event('storage'));
   }
 };
 
 export const getUser = (): User | null => {
-  if (typeof window !== 'undefined') {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        return JSON.parse(userStr);
-      } catch {
-        return null;
-      }
+  if (isBrowser) {
+    try {
+      // Try cookie first, then localStorage
+      const userStr = Cookies.get(AUTH_CONFIG.USER_KEY) || localStorage.getItem(AUTH_CONFIG.USER_KEY);
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return null;
     }
   }
   return null;
 };
 
-export const getAuthToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
+export const getAuthToken = (): string | null => {
+  if (isBrowser) {
+    // Try cookie first, then localStorage
+    return Cookies.get(AUTH_CONFIG.TOKEN_KEY) || localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
   }
   return null;
 };
 
 export const isAuthenticated = (): boolean => {
-  if (typeof window !== 'undefined') {
+  if (isBrowser) {
     const token = getAuthToken();
     const user = getUser();
     return !!token && !!user;
@@ -56,19 +60,25 @@ export const isAuthenticated = (): boolean => {
 };
 
 export const isAdmin = (): boolean => {
-  const user = getUser();
-  return user?.role === 'admin';
+  if (isBrowser) {
+    const user = getUser();
+    return user?.role === 'admin';
+  }
+  return false;
 };
 
 export const logout = () => {
-  if (typeof window !== 'undefined') {
+  if (isBrowser) {
     // Clear localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+    localStorage.removeItem(AUTH_CONFIG.USER_KEY);
     
     // Clear cookies
-    Cookies.remove('token', { path: '/' });
-    Cookies.remove('user', { path: '/' });
+    Cookies.remove(AUTH_CONFIG.TOKEN_KEY, { path: '/' });
+    Cookies.remove(AUTH_CONFIG.USER_KEY, { path: '/' });
+    
+    // Clear any other auth-related data
+    localStorage.removeItem('redirect');
     Cookies.remove('redirect', { path: '/' });
     
     // Clear axios header
@@ -79,8 +89,11 @@ export const logout = () => {
   }
 };
 
-// Initialize axios with token if it exists
+// Initialize auth state if token exists
 if (isBrowser) {
   const token = getAuthToken();
-  setAuthToken(token || '');
+  if (token) {
+    // Set axios default header
+    setAuthToken(token);
+  }
 }
