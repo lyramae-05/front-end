@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, getUser } from '@/lib/auth';
 import api from '@/lib/api';
-import { User, BorrowingRecord } from '@/types/api';
+import { User, BorrowingRecord, ApiResponse, ApiError } from '@/types/api';
 import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
@@ -43,10 +43,15 @@ export default function ProfilePage() {
 
   const fetchBorrowings = async () => {
     try {
-      const response = await api.get<{ data: BorrowingRecord[] }>('/borrowings');
+      const response = await api.get<ApiResponse<BorrowingRecord[]>>('/borrowings');
       setBorrowings(response.data.data || []);
     } catch (error) {
-      toast.error('Failed to fetch borrowed books');
+      if (error instanceof Error) {
+        const apiError = error as ApiError;
+        toast.error(apiError.message || 'Failed to fetch borrowed books');
+      } else {
+        toast.error('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -274,19 +279,19 @@ export default function ProfilePage() {
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             borrowing.status === 'returned'
                               ? 'bg-green-100 text-green-800'
-                              : borrowing.is_overdue
+                              : borrowing.status === 'overdue'
                               ? 'bg-red-100 text-red-800'
                               : 'bg-yellow-100 text-yellow-800'
                           }`}>
                             {borrowing.status === 'returned'
                               ? 'Returned'
-                              : borrowing.is_overdue
+                              : borrowing.status === 'overdue'
                               ? 'Overdue'
                               : 'Borrowed'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {borrowing.status === 'borrowed' && (
+                          {borrowing.status === 'active' && (
                             <button
                               onClick={() => handleReturn(borrowing.id)}
                               className="text-indigo-600 hover:text-indigo-900"
