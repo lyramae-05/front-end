@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com'}/api/:path*`
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com'}/:path*`
       }
     ];
   },

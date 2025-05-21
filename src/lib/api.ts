@@ -3,6 +3,41 @@ import { API_CONFIG, AUTH_CONFIG } from '../config';
 import Cookies from 'js-cookie';
 import { toast } from 'react-hot-toast';
 
+// Function to wake up the backend service
+export const wakeUpBackend = async () => {
+  try {
+    const wakeupToast = toast.loading('Connecting to server...');
+    
+    // Try multiple URLs in sequence
+    const urls = [API_CONFIG.BASE_URL, API_CONFIG.BACKUP_URL];
+    
+    for (const url of urls) {
+      try {
+        await axios.get(`${url}${API_CONFIG.WAKE_UP_ENDPOINT}`, {
+          timeout: API_CONFIG.CONNECTION_TIMEOUT
+        });
+        toast.success('Connected to server successfully!', {
+          id: wakeupToast,
+          duration: 3000
+        });
+        return true;
+      } catch (error) {
+        console.log(`Failed to wake up ${url}, trying next...`);
+        continue;
+      }
+    }
+    
+    toast.error('Unable to connect to the server. Please try again in a moment.', {
+      id: wakeupToast,
+      duration: 5000
+    });
+    return false;
+  } catch (error) {
+    console.error('Failed to wake up backend:', error);
+    return false;
+  }
+};
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_CONFIG.BASE_URL,
@@ -16,7 +51,9 @@ const api = axios.create({
 // Function to check if a URL is accessible
 const isUrlAccessible = async (url: string) => {
   try {
-    await axios.get(`${url}/health`, { timeout: API_CONFIG.CONNECTION_TIMEOUT });
+    await axios.get(`${url}${API_CONFIG.WAKE_UP_ENDPOINT}`, {
+      timeout: API_CONFIG.CONNECTION_TIMEOUT
+    });
     return true;
   } catch {
     return false;
@@ -34,6 +71,12 @@ const getBestApiUrl = async () => {
   if (await isUrlAccessible(API_CONFIG.BACKUP_URL)) {
     console.log('Using backup API URL');
     return API_CONFIG.BACKUP_URL;
+  }
+  
+  // Try to wake up the service
+  const isWakeupSuccessful = await wakeUpBackend();
+  if (isWakeupSuccessful) {
+    return API_CONFIG.BASE_URL;
   }
   
   throw new Error('No API endpoints are accessible');
@@ -54,7 +97,7 @@ api.interceptors.request.use(async (config) => {
     }
     return config;
   } catch (error) {
-    toast.error('Unable to connect to the server. Please check your internet connection and try again.');
+    toast.error('Unable to connect to the server. The service might be starting up, please try again in a moment.');
     return Promise.reject(error);
   }
 });
@@ -79,6 +122,11 @@ api.interceptors.response.use(
         (originalRequest as any)._retryCount = retryCount + 1;
         
         try {
+          // Try to wake up the service if it's a 503 (service unavailable)
+          if (status === 503) {
+            await wakeUpBackend();
+          }
+
           // Try to get the best available API URL before retrying
           originalRequest.baseURL = await getBestApiUrl();
           
@@ -140,11 +188,12 @@ api.interceptors.response.use(
       }
     } else if (error.request) {
       // Handle network errors
-      toast.error('Network error. Please check your internet connection and try again.');
+      toast.error('Network error. The server might be starting up, please try again in a moment.');
       console.error('Network Error:', error.request);
       
-      // Try to reconnect using the backup URL
+      // Try to wake up the service
       try {
+        await wakeUpBackend();
         if (originalRequest.baseURL === API_CONFIG.BASE_URL) {
           originalRequest.baseURL = API_CONFIG.BACKUP_URL;
           return api(originalRequest);

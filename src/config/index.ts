@@ -1,11 +1,12 @@
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com/api',
-  BACKUP_URL: 'https://backend-49g6.onrender.com/api', // Backup URL if primary fails
-  TIMEOUT: 60000, // Increased timeout for slower connections
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com',
+  BACKUP_URL: 'https://backend-49g6.onrender.com',
+  TIMEOUT: 180000, // 3 minutes for cold starts
   CREDENTIALS: true,
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000,
-  CONNECTION_TIMEOUT: 5000, // Specific timeout for connection attempts
+  RETRY_ATTEMPTS: 8,
+  RETRY_DELAY: 3000,
+  CONNECTION_TIMEOUT: 30000, // 30 seconds
+  WAKE_UP_ENDPOINT: '/health', // Endpoint to wake up the service
 };
 
 export const APP_CONFIG = {
@@ -19,8 +20,9 @@ export const AUTH_CONFIG = {
   USER_KEY: 'user',
   COOKIE_OPTIONS: {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
+    sameSite: 'none' as const,
     path: '/',
     maxAge: 7 * 24 * 60 * 60, // 7 days
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost'
   },
 }; 

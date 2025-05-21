@@ -3,28 +3,43 @@ import { User } from '@/types/api';
 import Cookies from 'js-cookie';
 import { AUTH_CONFIG } from '@/config';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com';
 
 const isBrowser = typeof window !== 'undefined';
 
 export const setAuthToken = (token: string) => {
   if (isBrowser) {
-    // Store in both localStorage and cookies for redundancy
-    localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
-    Cookies.set(AUTH_CONFIG.TOKEN_KEY, token, AUTH_CONFIG.COOKIE_OPTIONS);
-    
-    // Set axios default header
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    try {
+      // Store in both localStorage and cookies for redundancy
+      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
+      Cookies.set(AUTH_CONFIG.TOKEN_KEY, token, AUTH_CONFIG.COOKIE_OPTIONS);
+      
+      // Set axios default header
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } catch (error) {
+      console.error('Error setting auth token:', error);
+      // Fallback to just localStorage if cookie fails
+      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
   }
 };
 
 export const setUser = (user: User) => {
   if (isBrowser) {
-    const userStr = JSON.stringify(user);
-    localStorage.setItem(AUTH_CONFIG.USER_KEY, userStr);
-    Cookies.set(AUTH_CONFIG.USER_KEY, userStr, AUTH_CONFIG.COOKIE_OPTIONS);
-    // Dispatch a storage event so other components can update
-    window.dispatchEvent(new Event('storage'));
+    try {
+      const userStr = JSON.stringify(user);
+      localStorage.setItem(AUTH_CONFIG.USER_KEY, userStr);
+      Cookies.set(AUTH_CONFIG.USER_KEY, userStr, AUTH_CONFIG.COOKIE_OPTIONS);
+      // Dispatch a storage event so other components can update
+      window.dispatchEvent(new Event('storage'));
+    } catch (error) {
+      console.error('Error setting user data:', error);
+      // Fallback to just localStorage if cookie fails
+      const userStr = JSON.stringify(user);
+      localStorage.setItem(AUTH_CONFIG.USER_KEY, userStr);
+      window.dispatchEvent(new Event('storage'));
+    }
   }
 };
 
