@@ -44,4 +44,10 @@ export interface Transaction {
 export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
+  status?: number;
+}
+
+export interface ApiResponse<T> {
+  message: string;
+  data: T;
 }

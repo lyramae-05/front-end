@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdmin } from '@/lib/auth';
 import api from '@/lib/api';
-import { User } from '@/types/api';
+import { User, ApiError, ApiResponse } from '@/types/api';
 import toast from 'react-hot-toast';
 
 export default function AdminUsers() {
@@ -33,7 +33,7 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     const loadingToast = toast.loading('Loading users...');
     try {
-      const response = await api.get('/admin/users');
+      const response = await api.get<ApiResponse<User[]>>('/admin/users');
       if (response.data && Array.isArray(response.data.data)) {
         setUsers(response.data.data);
         toast.success('Users loaded successfully', {
@@ -46,13 +46,17 @@ export default function AdminUsers() {
         });
         setUsers([]);
       }
-    } catch (error: any) {
-      console.error('Failed to fetch users:', error);
-      toast.error(
-        error.response?.data?.message || 
-        'Failed to fetch users. Please try again later.',
-        { duration: 4000 }
-      );
+    } catch (error) {
+      if (error instanceof Error) {
+        const apiError = error as ApiError;
+        console.error('Failed to fetch users:', apiError);
+        toast.error(
+          apiError.message || 'Failed to fetch users. Please try again later.',
+          { duration: 4000 }
+        );
+      } else {
+        toast.error('An unexpected error occurred', { duration: 4000 });
+      }
       setUsers([]);
     } finally {
       setLoading(false);

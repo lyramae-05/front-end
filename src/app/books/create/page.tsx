@@ -2,20 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import api from '@/lib/api';
-import { toast } from 'react-hot-toast';
-import { Book } from '@/types/api';
+import toast, { Toast } from 'react-hot-toast';
+import { Book, ApiError, ApiResponse } from '@/types/api';
 
 interface BookFormData {
   title: string;
   author: string;
   isbn: string;
-  genre: string;
-  publisher: string;
-  published_date: string;
-  description: string;
   total_copies: number;
-  available_copies?: number;
 }
 
 export default function CreateBookPage() {
@@ -25,13 +21,8 @@ export default function CreateBookPage() {
     title: '',
     author: '',
     isbn: '',
-    genre: '',
-    publisher: '',
-    published_date: '',
-    description: '',
     total_copies: 1
   });
-
   const [errors, setErrors] = useState<Partial<Record<keyof BookFormData, string>>>({});
 
   const validateForm = () => {
@@ -47,18 +38,14 @@ export default function CreateBookPage() {
     
     if (!formData.isbn.trim()) {
       newErrors.isbn = 'ISBN is required';
-    } else if (formData.isbn.length < 10 || formData.isbn.length > 13) {
-      newErrors.isbn = 'ISBN must be between 10 and 13 characters';
+    } else if (!/^[\d-]{10,17}$/.test(formData.isbn.trim())) {
+      newErrors.isbn = 'Invalid ISBN format';
     }
     
     if (formData.total_copies < 1) {
-      newErrors.total_copies = 'Total copies must be at least 1';
+      newErrors.total_copies = 'Must have at least one copy';
     }
-
-    if (formData.description && formData.description.length > 1000) {
-      newErrors.description = 'Description cannot exceed 1000 characters';
-    }
-
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -73,31 +60,30 @@ export default function CreateBookPage() {
 
     try {
       setLoading(true);
-      // Set available_copies equal to total_copies for new books
       const submitData = {
         ...formData,
         available_copies: formData.total_copies
       };
-      const response = await api.post('/books', submitData);
+      const response = await api.post<ApiResponse<Book>>('/books', submitData);
       toast.success('Book added successfully');
       router.push('/admin/books');
-    } catch (error: any) {
-      console.error('Error adding book:', error);
-      if (error.response?.data?.errors) {
-        // Handle validation errors from the backend
-        const backendErrors = error.response.data.errors;
-        const formattedErrors: Partial<Record<keyof BookFormData, string>> = {};
-        
-        Object.keys(backendErrors).forEach(key => {
-          if (key in formData) {
-            formattedErrors[key as keyof BookFormData] = backendErrors[key][0];
-          }
-        });
-        
-        setErrors(formattedErrors);
-        toast.error('Please fix the form errors');
+    } catch (error) {
+      if (error instanceof Error) {
+        const apiError = error as ApiError;
+        if (apiError.errors) {
+          const formattedErrors: Partial<Record<keyof BookFormData, string>> = {};
+          Object.entries(apiError.errors).forEach(([key, messages]) => {
+            if (key in formData && Array.isArray(messages)) {
+              formattedErrors[key as keyof BookFormData] = messages[0];
+            }
+          });
+          setErrors(formattedErrors);
+          toast.error('Please fix the form errors');
+        } else {
+          toast.error(apiError.message || 'Failed to add book');
+        }
       } else {
-        toast.error(error.response?.data?.message || 'Failed to add book');
+        toast.error('An unexpected error occurred');
       }
     } finally {
       setLoading(false);
@@ -116,159 +102,109 @@ export default function CreateBookPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12">
-      <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-6">Add New Book</h2>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.title ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
-                  }`}
-                />
-                {errors.title && (
-                  <p className="mt-1 text-sm text-red-600">{errors.title}</p>
-                )}
-              </div>
+    <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
+      <div className="relative py-3 sm:max-w-xl sm:mx-auto">
+        <div className="relative px-4 py-10 bg-white mx-8 md:mx-0 shadow rounded-3xl sm:p-10">
+          <div className="max-w-md mx-auto">
+            <div className="divide-y divide-gray-200">
+              <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
+                <h2 className="text-2xl font-bold mb-8 text-center text-gray-900">Add New Book</h2>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+                      Title *
+                    </label>
+                    <input
+                      type="text"
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
+                        errors.title ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                      }`}
+                    />
+                    {errors.title && (
+                      <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+                    )}
+                  </div>
 
-              <div>
-                <label htmlFor="author" className="block text-sm font-medium text-gray-700">
-                  Author *
-                </label>
-                <input
-                  type="text"
-                  id="author"
-                  value={formData.author}
-                  onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.author ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
-                  }`}
-                />
-                {errors.author && (
-                  <p className="mt-1 text-sm text-red-600">{errors.author}</p>
-                )}
-              </div>
+                  <div>
+                    <label htmlFor="author" className="block text-sm font-medium text-gray-700">
+                      Author *
+                    </label>
+                    <input
+                      type="text"
+                      id="author"
+                      value={formData.author}
+                      onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                      className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
+                        errors.author ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                      }`}
+                    />
+                    {errors.author && (
+                      <p className="mt-1 text-sm text-red-600">{errors.author}</p>
+                    )}
+                  </div>
 
-              <div>
-                <label htmlFor="isbn" className="block text-sm font-medium text-gray-700">
-                  ISBN *
-                </label>
-                <input
-                  type="text"
-                  id="isbn"
-                  value={formData.isbn}
-                  onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.isbn ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
-                  }`}
-                />
-                {errors.isbn && (
-                  <p className="mt-1 text-sm text-red-600">{errors.isbn}</p>
-                )}
-              </div>
+                  <div>
+                    <label htmlFor="isbn" className="block text-sm font-medium text-gray-700">
+                      ISBN *
+                    </label>
+                    <input
+                      type="text"
+                      id="isbn"
+                      value={formData.isbn}
+                      onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                      className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
+                        errors.isbn ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                      }`}
+                    />
+                    {errors.isbn && (
+                      <p className="mt-1 text-sm text-red-600">{errors.isbn}</p>
+                    )}
+                  </div>
 
-              <div>
-                <label htmlFor="genre" className="block text-sm font-medium text-gray-700">
-                  Genre
-                </label>
-                <input
-                  type="text"
-                  id="genre"
-                  value={formData.genre}
-                  onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-              </div>
+                  <div>
+                    <label htmlFor="total_copies" className="block text-sm font-medium text-gray-700">
+                      Total Copies *
+                    </label>
+                    <input
+                      type="number"
+                      id="total_copies"
+                      min="1"
+                      value={formData.total_copies}
+                      onChange={handleCopiesChange}
+                      className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
+                        errors.total_copies ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                      }`}
+                    />
+                    {errors.total_copies && (
+                      <p className="mt-1 text-sm text-red-600">{errors.total_copies}</p>
+                    )}
+                  </div>
 
-              <div>
-                <label htmlFor="publisher" className="block text-sm font-medium text-gray-700">
-                  Publisher
-                </label>
-                <input
-                  type="text"
-                  id="publisher"
-                  value={formData.publisher}
-                  onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
+                  <div className="pt-5">
+                    <div className="flex justify-end">
+                      <Link
+                        href="/admin/books"
+                        className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        Cancel
+                      </Link>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className={`ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                          loading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {loading ? 'Adding...' : 'Add Book'}
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
-
-              <div>
-                <label htmlFor="published_date" className="block text-sm font-medium text-gray-700">
-                  Published Date
-                </label>
-                <input
-                  type="date"
-                  id="published_date"
-                  value={formData.published_date}
-                  onChange={(e) => setFormData({ ...formData, published_date: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  rows={4}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.description ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
-                  }`}
-                />
-                {errors.description && (
-                  <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="total_copies" className="block text-sm font-medium text-gray-700">
-                  Total Copies *
-                </label>
-                <input
-                  type="number"
-                  id="total_copies"
-                  min="1"
-                  value={formData.total_copies}
-                  onChange={handleCopiesChange}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.total_copies ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
-                  }`}
-                />
-                {errors.total_copies && (
-                  <p className="mt-1 text-sm text-red-600">{errors.total_copies}</p>
-                )}
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {loading ? 'Adding...' : 'Add Book'}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       </div>
