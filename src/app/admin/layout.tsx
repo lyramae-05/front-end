@@ -3,22 +3,48 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { isAdmin } from '@/lib/auth'; // Your auth check
+import { isAuthenticated, isAdmin } from '@/lib/auth';
+import { toast } from 'react-hot-toast';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAdmin()) {
-      router.push('/login'); // Redirect if not admin
-    } else {
+    const checkAuth = () => {
+      if (!isAuthenticated()) {
+        toast.error('Please login to access this page', {
+          duration: 4000
+        });
+        router.push('/auth/login');
+        return;
+      }
+
+      if (!isAdmin()) {
+        toast.error('Unauthorized access. Redirecting to dashboard...', {
+          duration: 4000
+        });
+        router.push('/dashboard');
+        return;
+      }
+
       setLoading(false);
-    }
+    };
+
+    checkAuth();
+    window.addEventListener('storage', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+    };
   }, [router]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div>
+      </div>
+    );
   }
 
   return (

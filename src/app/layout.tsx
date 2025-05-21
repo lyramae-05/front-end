@@ -1,5 +1,6 @@
 // app/layout.tsx
 import './globals.css'; // Your global styles
+import { Navbar } from '@/components/layout/Navbar';
 
 export default function RootLayout({
   children,
@@ -7,18 +8,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        {/* Put your main site header here */}
-        <header>
-          <h1>My Website</h1>
-          {/* Maybe your main nav */}
-        </header>
-
-        <main>{children}</main>
-
-        {/* Put your footer here */}
-        <footer>© 2025 My Website</footer>
+    <html lang="en" className="light">
+      <body className="min-h-screen bg-white">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">{children}</main>
       </body>
     </html>
   );

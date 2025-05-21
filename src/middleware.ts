@@ -7,6 +7,7 @@ const protectedRoutes = [
   '/my-books',
   '/profile',
   '/dashboard',
+  '/borrowed-books',
 ];
 
 // Add routes that require admin access
@@ -15,6 +16,7 @@ const adminRoutes = [
   '/admin/books',
   '/admin/users',
   '/admin/borrowings',
+  '/admin/reports',
 ];
 
 // Add routes that should redirect to dashboard if already logged in
@@ -28,9 +30,11 @@ const authRoutes = [
 // Add public routes that don't need any checks
 const publicRoutes = [
   '/',
+  '/about',
   '/api',
   '/_next',
   '/favicon.ico',
+  '/assets',
 ];
 
 export function middleware(request: NextRequest) {

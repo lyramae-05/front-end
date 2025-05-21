@@ -21,7 +21,9 @@ export default function AdminUsers() {
 
   useEffect(() => {
     if (!isAdmin()) {
-      toast.error('Unauthorized access');
+      toast.error('Unauthorized access. Redirecting to dashboard...', {
+        duration: 4000
+      });
       router.push('/dashboard');
       return;
     }
@@ -29,21 +31,32 @@ export default function AdminUsers() {
   }, []);
 
   const fetchUsers = async () => {
+    const loadingToast = toast.loading('Loading users...');
     try {
       const response = await api.get('/admin/users');
       if (response.data && Array.isArray(response.data.data)) {
         setUsers(response.data.data);
+        toast.success('Users loaded successfully', {
+          duration: 2000
+        });
       } else {
         console.error('Invalid response format:', response.data);
-        toast.error('Invalid response format from server');
+        toast.error('Invalid response format from server. Please try again.', {
+          duration: 4000
+        });
         setUsers([]);
       }
     } catch (error: any) {
       console.error('Failed to fetch users:', error);
-      toast.error(error.response?.data?.message || 'Failed to fetch users');
+      toast.error(
+        error.response?.data?.message || 
+        'Failed to fetch users. Please try again later.',
+        { duration: 4000 }
+      );
       setUsers([]);
     } finally {
       setLoading(false);
+      toast.dismiss(loadingToast);
     }
   };
 
@@ -51,14 +64,24 @@ export default function AdminUsers() {
     e.preventDefault();
     if (!editingUser) return;
 
+    const loadingToast = toast.loading('Updating user...');
     try {
       await api.put(`/users/${editingUser.id}`, formData);
-      toast.success('User updated successfully');
+      toast.success(`Successfully updated ${editingUser.name}'s information!`, {
+        duration: 4000
+      });
       setShowEditModal(false);
       setEditingUser(null);
       fetchUsers();
-    } catch (error) {
-      toast.error('Failed to update user');
+    } catch (error: any) {
+      console.error('Failed to update user:', error);
+      toast.error(
+        error.response?.data?.message || 
+        'Failed to update user. Please try again.',
+        { duration: 4000 }
+      );
+    } finally {
+      toast.dismiss(loadingToast);
     }
   };
 
@@ -77,13 +100,22 @@ export default function AdminUsers() {
       return;
     }
 
+    const loadingToast = toast.loading(`Deleting user ${user.name}...`);
     try {
       await api.delete(`/admin/users/${user.id}`);
-      toast.success('User deleted successfully');
+      toast.success(`Successfully deleted user ${user.name}`, {
+        duration: 4000
+      });
       fetchUsers();
     } catch (error: any) {
       console.error('Failed to delete user:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete user');
+      toast.error(
+        error.response?.data?.message || 
+        'Failed to delete user. Please try again.',
+        { duration: 4000 }
+      );
+    } finally {
+      toast.dismiss(loadingToast);
     }
   };
 

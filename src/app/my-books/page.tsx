@@ -14,32 +14,61 @@ export default function MyBooksPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      toast.error('Please login to access this page');
-      router.push('/login');
-      return;
-    }
-    fetchBorrowings();
-  }, []);
+    const checkAuth = () => {
+      if (!isAuthenticated()) {
+        toast.error('Please login to access this page', {
+          duration: 4000
+        });
+        router.push('/auth/login');
+        return;
+      }
+      fetchBorrowings();
+    };
+
+    checkAuth();
+    window.addEventListener('storage', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+    };
+  }, [router]);
 
   const fetchBorrowings = async () => {
+    const loadingToast = toast.loading('Loading your borrowed books...');
     try {
       const response = await api.get<{ data: BorrowingRecord[] }>('/borrowings');
       setBorrowings(response.data.data || []);
-    } catch (error) {
-      toast.error('Failed to fetch borrowed books');
+    } catch (error: any) {
+      console.error('Failed to fetch borrowed books:', error);
+      toast.error(
+        error.response?.data?.message || 
+        'Failed to fetch borrowed books. Please try again later.',
+        { duration: 4000 }
+      );
+      setBorrowings([]);
     } finally {
       setLoading(false);
+      toast.dismiss(loadingToast);
     }
   };
 
-  const handleReturn = async (borrowingId: number) => {
+  const handleReturn = async (borrowingId: number, bookTitle: string) => {
+    const loadingToast = toast.loading(`Returning "${bookTitle}"...`);
     try {
       await api.post(`/borrowings/${borrowingId}/return`);
-      toast.success('Book returned successfully');
+      toast.success(`Successfully returned "${bookTitle}"`, {
+        duration: 4000
+      });
       fetchBorrowings();
-    } catch (error) {
-      toast.error('Failed to return book');
+    } catch (error: any) {
+      console.error('Failed to return book:', error);
+      toast.error(
+        error.response?.data?.message || 
+        'Failed to return book. Please try again later.',
+        { duration: 4000 }
+      );
+    } finally {
+      toast.dismiss(loadingToast);
     }
   };
 
@@ -72,8 +101,14 @@ export default function MyBooksPage() {
         </div>
 
         {borrowings.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">You haven't borrowed any books yet.</p>
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <p className="text-gray-500 mb-4">You haven't borrowed any books yet.</p>
+            <Link
+              href="/books"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              Browse Available Books
+            </Link>
           </div>
         ) : (
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
@@ -131,7 +166,7 @@ export default function MyBooksPage() {
                         </Link>
                         {!borrowing.returned_at && (
                           <button
-                            onClick={() => handleReturn(borrowing.id)}
+                            onClick={() => handleReturn(borrowing.id, borrowing.book.title)}
                             className="text-indigo-600 hover:text-indigo-900"
                           >
                             Return

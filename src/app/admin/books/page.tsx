@@ -26,13 +26,14 @@ export default function AdminBooks() {
   const fetchBooks = async () => {
     try {
       const response = await api.get('/books');
-      // Handle both possible API response structures
       const booksData = response.data.data || response.data || [];
       setBooks(Array.isArray(booksData) ? booksData : []);
     } catch (error) {
       console.error('Error fetching books:', error);
-      toast.error('Failed to load books');
-      setBooks([]); // Set empty array on error
+      toast.error('Failed to load books. Please try again later.', {
+        duration: 4000
+      });
+      setBooks([]);
     } finally {
       setLoading(false);
     }
@@ -44,32 +45,48 @@ export default function AdminBooks() {
 
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
+    const loadingToast = toast.loading('Adding new book...');
     try {
       const response = await api.post('/books', newBook);
       const newBookData = response.data.data || response.data;
       if (newBookData) {
         setBooks(prevBooks => [...prevBooks, newBookData]);
         setNewBook({ title: '', author: '', isbn: '', quantity: 1 });
-        toast.success('Book added successfully');
+        toast.success(`Successfully added "${newBook.title}" to the library!`, {
+          duration: 4000
+        });
       } else {
         throw new Error('Invalid response format');
       }
     } catch (error: any) {
       console.error('Error adding book:', error);
-      toast.error(error.response?.data?.message || 'Failed to add book');
+      toast.error(
+        error.response?.data?.message || 
+        'Failed to add book. Please check the details and try again.',
+        { duration: 4000 }
+      );
+    } finally {
+      toast.dismiss(loadingToast);
     }
   };
 
-  const handleDeleteBook = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this book?')) return;
+  const handleDeleteBook = async (id: number, title: string) => {
+    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
     
+    const loadingToast = toast.loading('Deleting book...');
     try {
       await api.delete(`/books/${id}`);
       setBooks(books.filter(book => book.id !== id));
-      toast.success('Book deleted successfully');
+      toast.success(`Successfully deleted "${title}"`, {
+        duration: 4000
+      });
     } catch (error) {
       console.error('Error deleting book:', error);
-      toast.error('Failed to delete book');
+      toast.error('Failed to delete book. Please try again later.', {
+        duration: 4000
+      });
+    } finally {
+      toast.dismiss(loadingToast);
     }
   };
 
@@ -171,7 +188,7 @@ export default function AdminBooks() {
                   <td className="px-6 py-4 whitespace-nowrap">{book.total_copies}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <button
-                      onClick={() => handleDeleteBook(book.id)}
+                      onClick={() => handleDeleteBook(book.id, book.title)}
                       className="text-red-600 hover:text-red-900"
                     >
                       Delete
