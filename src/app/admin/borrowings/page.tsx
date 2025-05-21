@@ -92,14 +92,14 @@ export default function AdminBorrowings() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${borrowing.status === 'active' ? 'bg-green-100 text-green-800' : 
+                      ${borrowing.status === 'borrowed' ? 'bg-green-100 text-green-800' : 
                         borrowing.status === 'overdue' ? 'bg-red-100 text-red-800' : 
                         'bg-gray-100 text-gray-800'}`}>
                       {borrowing.status.charAt(0).toUpperCase() + borrowing.status.slice(1)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    {borrowing.status === 'active' && (
+                    {borrowing.status === 'borrowed' && (
                       <button
                         onClick={() => handleReturn(borrowing.id, borrowing.book.title)}
                         className="text-indigo-600 hover:text-indigo-900"

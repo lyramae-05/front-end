@@ -29,11 +29,15 @@ export interface AuthResponse {
 
 export interface BorrowingRecord {
   id: number;
+  user_id: number;
+  book_id: number;
   book: Book;
   borrowed_at: string;
   due_date: string;
   returned_at: string | null;
-  status: 'active' | 'returned' | 'overdue';
+  status: 'borrowed' | 'returned' | 'overdue';
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ApiError {

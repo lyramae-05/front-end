@@ -44,6 +44,7 @@ declare module 'react-hot-toast' {
 declare module '@/lib/api' {
   import { AxiosInstance } from 'axios';
   const api: AxiosInstance;
+  export const wakeUpBackend: () => Promise<boolean>;
   export default api;
 }
 
