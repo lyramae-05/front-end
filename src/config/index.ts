@@ -6,11 +6,11 @@ export const API_CONFIG = {
   RETRY_ATTEMPTS: 8,
   RETRY_DELAY: 3000,
   CONNECTION_TIMEOUT: 30000, // 30 seconds
-  WAKE_UP_ENDPOINT: '/health', // Endpoint to wake up the service
+  WAKE_UP_ENDPOINT: '/api/health', // Endpoint to wake up the service
 };
 
 export const APP_CONFIG = {
-  FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000',
+  FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://front-end-eight-roan.vercel.app',
   ENV: process.env.NODE_ENV || 'development',
   IS_PRODUCTION: process.env.NODE_ENV === 'production',
 };

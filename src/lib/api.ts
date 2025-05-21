@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { API_CONFIG, AUTH_CONFIG } from '../config';
+import { API_CONFIG, AUTH_CONFIG, APP_CONFIG } from '../config';
 import Cookies from 'js-cookie';
 import { toast } from 'react-hot-toast';
 
@@ -52,10 +52,22 @@ const api = axios.create({
 const isUrlAccessible = async (url: string) => {
   try {
     await axios.get(`${url}${API_CONFIG.WAKE_UP_ENDPOINT}`, {
-      timeout: API_CONFIG.CONNECTION_TIMEOUT
+      timeout: API_CONFIG.CONNECTION_TIMEOUT,
+      headers: {
+        'Origin': typeof window !== 'undefined' ? window.location.origin : APP_CONFIG.FRONTEND_URL
+      }
     });
     return true;
-  } catch {
+  } catch (error: any) {
+    if (error.response) {
+      console.error('URL access error response:', {
+        status: error.response.status,
+        headers: error.response.headers,
+        data: error.response.data
+      });
+    } else if (error.request) {
+      console.error('URL access network error:', error.message);
+    }
     return false;
   }
 };
