@@ -2,16 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { toast } from 'react-hot-toast';
-
-interface Book {
-  id: number;
-  title: string;
-  author: string;
-  isbn: string;
-  total_copies: number;
-  available_copies: number;
-}
+import toast from 'react-hot-toast';
+import { Book } from '@/types/api';
 
 export default function AdminBooks() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -30,9 +22,7 @@ export default function AdminBooks() {
       setBooks(Array.isArray(booksData) ? booksData : []);
     } catch (error) {
       console.error('Error fetching books:', error);
-      toast.error('Failed to load books. Please try again later.', {
-        duration: 4000
-      });
+      toast.error('Failed to load books. Please try again later.');
       setBooks([]);
     } finally {
       setLoading(false);
@@ -45,16 +35,14 @@ export default function AdminBooks() {
 
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
-    const loadingToast = toast.loading('Adding new book...');
+    const loadingToastId = toast.loading('Adding new book...');
     try {
       const response = await api.post('/books', newBook);
       const newBookData = response.data.data || response.data;
       if (newBookData) {
         setBooks(prevBooks => [...prevBooks, newBookData]);
         setNewBook({ title: '', author: '', isbn: '', quantity: 1 });
-        toast.success(`Successfully added "${newBook.title}" to the library!`, {
-          duration: 4000
-        });
+        toast.success(`Successfully added "${newBook.title}" to the library!`);
       } else {
         throw new Error('Invalid response format');
       }
@@ -62,31 +50,26 @@ export default function AdminBooks() {
       console.error('Error adding book:', error);
       toast.error(
         error.response?.data?.message || 
-        'Failed to add book. Please check the details and try again.',
-        { duration: 4000 }
+        'Failed to add book. Please check the details and try again.'
       );
     } finally {
-      toast.dismiss(loadingToast);
+      toast.dismiss(loadingToastId);
     }
   };
 
   const handleDeleteBook = async (id: number, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
     
-    const loadingToast = toast.loading('Deleting book...');
+    const loadingToastId = toast.loading('Deleting book...');
     try {
       await api.delete(`/books/${id}`);
       setBooks(books.filter(book => book.id !== id));
-      toast.success(`Successfully deleted "${title}"`, {
-        duration: 4000
-      });
+      toast.success(`Successfully deleted "${title}"`);
     } catch (error) {
       console.error('Error deleting book:', error);
-      toast.error('Failed to delete book. Please try again later.', {
-        duration: 4000
-      });
+      toast.error('Failed to delete book. Please try again later.');
     } finally {
-      toast.dismiss(loadingToast);
+      toast.dismiss(loadingToastId);
     }
   };
 

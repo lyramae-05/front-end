@@ -4,7 +4,8 @@ export interface Book {
   author: string;
   isbn: string;
   quantity: number;
-  available_quantity: number;
+  available_copies: number;
+  total_copies: number;
   created_at: string;
   updated_at: string;
 }
