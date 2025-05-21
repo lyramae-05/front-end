@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Transaction } from '@/types/api';
+import { BorrowingRecord } from '@/types/api';
 import { isAdmin } from '@/lib/auth';
 
 export default function AdminBorrowings() {
   const router = useRouter();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [borrowings, setBorrowings] = useState<BorrowingRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,33 +17,29 @@ export default function AdminBorrowings() {
       router.push('/dashboard');
       return;
     }
-    fetchTransactions();
+    fetchBorrowings();
   }, []);
 
-  const fetchTransactions = async () => {
+  const fetchBorrowings = async () => {
     try {
       const response = await api.get('/admin/transactions');
-      if (response.data && Array.isArray(response.data.data)) {
-        setTransactions(response.data.data);
-      } else {
-        setTransactions([]);
-      }
-    } catch (error: any) {
-      console.error('Error fetching transactions:', error);
-      toast.error('Failed to load transactions');
-      setTransactions([]);
+      setBorrowings(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching borrowings:', error);
+      toast.error('Failed to load borrowings');
+      setBorrowings([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReturn = async (transactionId: number, bookTitle: string) => {
+  const handleReturn = async (borrowingId: number, bookTitle: string) => {
     const loadingToastId = toast.loading(`Processing return for "${bookTitle}"...`);
     try {
-      await api.post(`/return/${transactionId}`);
-      await fetchTransactions();
+      await api.post(`/return/${borrowingId}`);
+      await fetchBorrowings();
       toast.success(`Successfully returned "${bookTitle}"`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error returning book:', error);
       toast.error('Failed to return book');
     } finally {
@@ -64,7 +60,7 @@ export default function AdminBorrowings() {
       <h1 className="text-3xl font-bold mb-8">Manage Borrowings</h1>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {transactions.length === 0 ? (
+        {borrowings.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
             No borrowings found.
           </div>
@@ -73,7 +69,6 @@ export default function AdminBorrowings() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrowed Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -81,28 +76,32 @@ export default function AdminBorrowings() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {transactions.map((transaction) => (
-                <tr key={transaction.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{transaction.book?.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{transaction.user?.name}</td>
+              {borrowings.map((borrowing) => (
+                <tr key={borrowing.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(transaction.borrowed_at).toLocaleDateString()}
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{borrowing.book.title}</div>
+                      <div className="text-sm text-gray-500">{borrowing.book.author}</div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(transaction.due_date).toLocaleDateString()}
+                    {new Date(borrowing.borrowed_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {new Date(borrowing.due_date).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${transaction.status === 'active' ? 'bg-green-100 text-green-800' : 
-                        transaction.status === 'overdue' ? 'bg-red-100 text-red-800' : 
+                      ${borrowing.status === 'active' ? 'bg-green-100 text-green-800' : 
+                        borrowing.status === 'overdue' ? 'bg-red-100 text-red-800' : 
                         'bg-gray-100 text-gray-800'}`}>
-                      {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                      {borrowing.status.charAt(0).toUpperCase() + borrowing.status.slice(1)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    {transaction.status === 'active' && (
+                    {borrowing.status === 'active' && (
                       <button
-                        onClick={() => handleReturn(transaction.id, transaction.book?.title || 'Unknown Book')}
+                        onClick={() => handleReturn(borrowing.id, borrowing.book.title)}
                         className="text-indigo-600 hover:text-indigo-900"
                       >
                         Return
