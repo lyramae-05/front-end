@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import api from '@/lib/api';
-import { Book } from '@/types/api';
+import { Book, ApiResponse } from '@/types/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -13,8 +13,6 @@ export default function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('');
-  const [genres, setGenres] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -27,13 +25,9 @@ export default function BooksPage() {
 
   const fetchBooks = async () => {
     try {
-      const response = await api.get<{ data: Book[] }>('/books');
+      const response = await api.get<ApiResponse<Book[]>>('/books');
       const books = response.data.data || [];
       setBooks(books);
-      
-      // Extract unique genres
-      const uniqueGenres = Array.from(new Set(books.map(book => book.genre)));
-      setGenres(uniqueGenres);
     } catch (error) {
       toast.error('Failed to fetch books');
     } finally {
@@ -62,12 +56,10 @@ export default function BooksPage() {
     }
   };
 
-  const filteredBooks = books.filter(book => {
-    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.author.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGenre = !selectedGenre || book.genre === selectedGenre;
-    return matchesSearch && matchesGenre;
-  });
+  const filteredBooks = books.filter(book => 
+    book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    book.author.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -85,31 +77,15 @@ export default function BooksPage() {
           <p className="mt-2 text-gray-600">Discover and borrow from our collection</p>
         </div>
 
-        {/* Search and Filter */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Search by title or author..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div className="sm:w-48">
-            <select
-              value={selectedGenre}
-              onChange={(e) => setSelectedGenre(e.target.value)}
-              className="w-full px-4 py-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="">All Genres</option>
-              {genres.map((genre) => (
-                <option key={genre} value={genre}>
-                  {genre}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Search */}
+        <div className="mb-8">
+          <input
+            type="text"
+            placeholder="Search by title or author..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          />
         </div>
 
         {/* Books Grid */}
@@ -124,12 +100,11 @@ export default function BooksPage() {
                 <div className="p-6">
                   <h3 className="text-xl font-semibold text-gray-900">{book.title}</h3>
                   <p className="mt-2 text-gray-600">{book.author}</p>
-                  <p className="mt-1 text-sm text-gray-500">{book.genre}</p>
-                  {book.description && (
-                    <p className="mt-4 text-gray-600 line-clamp-3">{book.description}</p>
-                  )}
+                  <p className="mt-2 text-sm text-gray-500">ISBN: {book.isbn}</p>
                   <div className="mt-6 flex items-center justify-between">
-                    <span className="text-sm text-gray-500">
+                    <span className={`text-sm ${
+                      book.available_copies > 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
                       {book.available_copies} of {book.total_copies} available
                     </span>
                     <div className="flex space-x-2">
