@@ -3,13 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import axios from 'axios';
+import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Book, ApiError } from '@/types/api';
+import { Book, ApiError, ApiResponse } from '@/types/api';
 import { isAdmin } from '@/lib/auth';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { use } from 'react';
-import api from '@/lib/api';
 
 function BookDetailsContent({ id }: { id: string }) {
   const router = useRouter();
@@ -40,13 +38,17 @@ function BookDetailsContent({ id }: { id: string }) {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get<{ message: string; data: Book }>(`/books/${id}`);
+      const response = await api.get<ApiResponse<Book>>(`/books/${id}`);
       setBook(response.data.data);
     } catch (error) {
-      const apiError = error as ApiError;
-      const errorMessage = apiError.message || 'Failed to fetch book details';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      if (error instanceof Error) {
+        const apiError = error as ApiError;
+        const errorMessage = apiError.message || 'Failed to fetch book details';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      } else {
+        toast.error('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -60,8 +62,12 @@ function BookDetailsContent({ id }: { id: string }) {
       toast.success('Book deleted successfully');
       router.push('/books');
     } catch (error) {
-      const apiError = error as ApiError;
-      toast.error(apiError.message || 'Failed to delete book');
+      if (error instanceof Error) {
+        const apiError = error as ApiError;
+        toast.error(apiError.message || 'Failed to delete book');
+      } else {
+        toast.error('An unexpected error occurred');
+      }
     }
   };
 
@@ -151,31 +157,7 @@ function BookDetailsContent({ id }: { id: string }) {
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">ISBN</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {book.isbn || 'Not available'}
-                </dd>
-              </div>
-              <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Genre</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {book.genre || 'Not specified'}
-                </dd>
-              </div>
-              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Publisher</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {book.publisher || 'Not available'}
-                </dd>
-              </div>
-              <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Published Date</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {book.published_date ? new Date(book.published_date).toLocaleDateString() : 'Not available'}
-                </dd>
-              </div>
-              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Description</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {book.description || 'No description available'}
+                  {book.isbn}
                 </dd>
               </div>
               <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -195,13 +177,13 @@ function BookDetailsContent({ id }: { id: string }) {
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Added On</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {book.created_at ? new Date(book.created_at).toLocaleDateString() : 'Not available'}
+                  {new Date(book.created_at).toLocaleDateString()}
                 </dd>
               </div>
               <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {book.updated_at ? new Date(book.updated_at).toLocaleDateString() : 'Not available'}
+                  {new Date(book.updated_at).toLocaleDateString()}
                 </dd>
               </div>
             </dl>
@@ -212,11 +194,10 @@ function BookDetailsContent({ id }: { id: string }) {
   );
 }
 
-export default function BookDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const unwrappedParams = use(params);
+export default function BookDetailsPage({ params }: { params: { id: string } }) {
   return (
     <ErrorBoundary>
-      <BookDetailsContent id={unwrappedParams.id} />
+      <BookDetailsContent id={params.id} />
     </ErrorBoundary>
   );
 } 
