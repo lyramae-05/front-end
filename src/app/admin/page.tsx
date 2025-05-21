@@ -60,12 +60,6 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-semibold mb-2">Manage Borrowings</h2>
           <p className="text-gray-600">Track and manage book borrowings</p>
         </Link>
-        
-        <Link href="/admin/reports"
-          className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-          <h2 className="text-xl font-semibold mb-2">Reports</h2>
-          <p className="text-gray-600">View library statistics and reports</p>
-        </Link>
       </div>
     </div>
   );

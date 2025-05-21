@@ -55,7 +55,7 @@ export default function MyBooksPage() {
   const handleReturn = async (borrowingId: number, bookTitle: string) => {
     const loadingToast = toast.loading(`Returning "${bookTitle}"...`);
     try {
-      await api.post(`/borrowings/${borrowingId}/return`);
+      await api.post(`/return/${borrowingId}`);
       toast.success(`Successfully returned "${bookTitle}"`, {
         duration: 4000
       });

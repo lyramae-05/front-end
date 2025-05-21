@@ -7,7 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrende
 
 const isBrowser = typeof window !== 'undefined';
 
-export const setAuthToken = (token: string) => {
+export const setAuthToken = (token: string): void => {
   if (isBrowser) {
     try {
       // Store in both localStorage and cookies for redundancy
@@ -25,7 +25,7 @@ export const setAuthToken = (token: string) => {
   }
 };
 
-export const setUser = (user: User) => {
+export const setUser = (user: User): void => {
   if (isBrowser) {
     try {
       const userStr = JSON.stringify(user);

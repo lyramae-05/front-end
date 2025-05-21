@@ -1,24 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { setAuthToken, setUser } from '@/lib/auth';
 import { AuthResponse } from '@/types/api';
 import api from '@/lib/api';
+
+interface FormData {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+interface RegistrationData extends FormData {
+  role: 'user';
+}
 
 export default function RegisterForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     password: '',
     password_confirmation: '',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (formData.password !== formData.password_confirmation) {
       toast.error('Passwords do not match');
@@ -28,21 +38,16 @@ export default function RegisterForm() {
     setLoading(true);
 
     try {
-      const registrationData = {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        password_confirmation: formData.password_confirmation,
+      const registrationData: RegistrationData = {
+        ...formData,
         role: 'user'
       };
 
       const response = await api.post<AuthResponse>('/register', registrationData);
       
       if (response.data.access_token && response.data.user) {
-        setAuthToken(response.data.access_token);
-        setUser(response.data.user);
-        toast.success('Registration successful!');
-        router.push('/');
+        toast.success('Registration successful! Please login to continue.');
+        router.push('/auth/login');
       } else {
         console.error('Invalid response format:', response.data);
         throw new Error('Invalid response from server');
@@ -66,6 +71,11 @@ export default function RegisterForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev: FormData) => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -96,9 +106,7 @@ export default function RegisterForm() {
               type="text"
               required
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              onChange={handleInputChange}
               className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               placeholder="Full Name"
             />
@@ -113,9 +121,7 @@ export default function RegisterForm() {
               type="email"
               required
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={handleInputChange}
               className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               placeholder="Email address"
             />
@@ -130,9 +136,7 @@ export default function RegisterForm() {
               type="password"
               required
               value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
+              onChange={handleInputChange}
               className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               placeholder="Password (minimum 8 characters)"
               minLength={8}
@@ -148,12 +152,7 @@ export default function RegisterForm() {
               type="password"
               required
               value={formData.password_confirmation}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  password_confirmation: e.target.value,
-                })
-              }
+              onChange={handleInputChange}
               className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               placeholder="Confirm Password"
               minLength={8}

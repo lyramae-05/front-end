@@ -2,16 +2,11 @@ export interface Book {
   id: number;
   title: string;
   author: string;
-  genre: string;
-  description: string;
-  total_copies: number;
-  available_copies: number;
   isbn: string;
-  published_date: string;
-  publisher: string;
-  cover_image?: string;
-  created_at?: string;
-  updated_at?: string;
+  quantity: number;
+  available_quantity: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface User {
@@ -19,6 +14,8 @@ export interface User {
   name: string;
   email: string;
   role: 'admin' | 'user';
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthResponse {
@@ -26,18 +23,18 @@ export interface AuthResponse {
   user: User;
 }
 
-export interface BorrowingRecord {
+export interface Transaction {
   id: number;
-  book: {
-    id: number;
-    title: string;
-    author: string;
-  };
+  user_id: number;
+  book_id: number;
   borrowed_at: string;
   due_date: string;
   returned_at: string | null;
-  status: 'borrowed' | 'returned';
-  is_overdue: boolean;
+  status: 'active' | 'returned' | 'overdue';
+  created_at: string;
+  updated_at: string;
+  book?: Book;
+  user?: User;
 }
 
 export interface ApiError {
