@@ -13,17 +13,50 @@ const api = axios.create({
   withCredentials: API_CONFIG.CREDENTIALS
 });
 
-// Add request interceptor to attach auth token
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = Cookies.get(AUTH_CONFIG.TOKEN_KEY) || localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+// Function to check if a URL is accessible
+const isUrlAccessible = async (url: string) => {
+  try {
+    await axios.get(`${url}/health`, { timeout: API_CONFIG.CONNECTION_TIMEOUT });
+    return true;
+  } catch {
+    return false;
   }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
+};
+
+// Function to get the best available API URL
+const getBestApiUrl = async () => {
+  // Try primary URL first
+  if (await isUrlAccessible(API_CONFIG.BASE_URL)) {
+    return API_CONFIG.BASE_URL;
+  }
+  
+  // Try backup URL if primary fails
+  if (await isUrlAccessible(API_CONFIG.BACKUP_URL)) {
+    console.log('Using backup API URL');
+    return API_CONFIG.BACKUP_URL;
+  }
+  
+  throw new Error('No API endpoints are accessible');
+};
+
+// Add request interceptor to attach auth token and handle connection issues
+api.interceptors.request.use(async (config) => {
+  try {
+    // Update baseURL to the best available endpoint
+    config.baseURL = await getBestApiUrl();
+    
+    // Attach auth token
+    if (typeof window !== 'undefined') {
+      const token = Cookies.get(AUTH_CONFIG.TOKEN_KEY) || localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return config;
+  } catch (error) {
+    toast.error('Unable to connect to the server. Please check your internet connection and try again.');
+    return Promise.reject(error);
+  }
 });
 
 // Add response interceptor to handle common errors
@@ -45,11 +78,18 @@ api.interceptors.response.use(
       if ((status === 408 || status === 429 || status >= 500) && retryCount < API_CONFIG.RETRY_ATTEMPTS) {
         (originalRequest as any)._retryCount = retryCount + 1;
         
-        // Exponential backoff
-        const delay = API_CONFIG.RETRY_DELAY * Math.pow(2, retryCount);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        
-        return api(originalRequest);
+        try {
+          // Try to get the best available API URL before retrying
+          originalRequest.baseURL = await getBestApiUrl();
+          
+          // Exponential backoff
+          const delay = API_CONFIG.RETRY_DELAY * Math.pow(2, retryCount);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          return api(originalRequest);
+        } catch (error) {
+          console.error('Failed to retry request:', error);
+        }
       }
 
       // Handle authentication errors
@@ -100,11 +140,21 @@ api.interceptors.response.use(
       }
     } else if (error.request) {
       // Handle network errors
-      toast.error('Network error. Please check your connection.');
+      toast.error('Network error. Please check your internet connection and try again.');
       console.error('Network Error:', error.request);
+      
+      // Try to reconnect using the backup URL
+      try {
+        if (originalRequest.baseURL === API_CONFIG.BASE_URL) {
+          originalRequest.baseURL = API_CONFIG.BACKUP_URL;
+          return api(originalRequest);
+        }
+      } catch (retryError) {
+        console.error('Failed to retry with backup URL:', retryError);
+      }
     } else {
       // Handle other errors
-      toast.error('An unexpected error occurred.');
+      toast.error('An unexpected error occurred. Please try again.');
       console.error('Error:', error.message);
     }
 

@@ -1,9 +1,11 @@
 export const API_CONFIG = {
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://backend-49g6.onrender.com/api',
-  TIMEOUT: 30000,
+  BACKUP_URL: 'https://backend-49g6.onrender.com/api', // Backup URL if primary fails
+  TIMEOUT: 60000, // Increased timeout for slower connections
   CREDENTIALS: true,
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
+  CONNECTION_TIMEOUT: 5000, // Specific timeout for connection attempts
 };
 
 export const APP_CONFIG = {
