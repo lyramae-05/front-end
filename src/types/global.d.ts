@@ -32,13 +32,15 @@ declare module 'react-hot-toast' {
     className?: string;
   }
 
-  export function toast(message: string | React.ReactNode, options?: ToastOptions): string;
-  export function success(message: string | React.ReactNode, options?: ToastOptions): string;
-  export function error(message: string | React.ReactNode, options?: ToastOptions): string;
-  export function loading(message: string | React.ReactNode, options?: ToastOptions): string;
-  export function dismiss(toastId?: string): void;
+  export const toast: {
+    (message: string | React.ReactNode, options?: ToastOptions): string;
+    success: (message: string | React.ReactNode, options?: ToastOptions) => string;
+    error: (message: string | React.ReactNode, options?: ToastOptions) => string;
+    loading: (message: string | React.ReactNode, options?: ToastOptions) => string;
+    dismiss: (toastId?: string) => void;
+  };
 
-  export default { toast, success, error, loading, dismiss };
+  export default toast;
 }
 
 declare module '@/lib/api' {
