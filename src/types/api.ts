@@ -3,6 +3,9 @@ export interface Book {
   title: string;
   author: string;
   isbn: string;
+  genre?: string;
+  description?: string;
+  publisher?: string;
   quantity: number;
   available_copies: number;
   total_copies: number;
